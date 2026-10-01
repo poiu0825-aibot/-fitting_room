@@ -1,5 +1,5 @@
 import { PHOTO_CONFIG } from './config';
-import { alphaBounds, resizedMaskIndex, repairHair } from './pixels';
+import { alphaBounds, resizedMaskIndex } from './pixels';
 import type { HairAsset, PhotoAnalysis } from './types';
 import type { CalibrationState, Point } from '../vision/types';
 import { distance, lineRotation, midpoint } from '../utils/math';
@@ -128,61 +128,15 @@ function faceProtection(analysis: PhotoAnalysis, width: number, height: number) 
 }
 export function prepareRepair(original: HTMLCanvasElement, analysis: PhotoAnalysis) {
   const protectedFace = faceProtection(analysis, original.width, original.height);
-  const scale = Math.min(1, PHOTO_CONFIG.repairMaxSide / Math.max(original.width, original.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(original.width * scale);
-  canvas.height = Math.round(original.height * scale);
-  const ctx = canvas.getContext('2d')!;
-  ctx.drawImage(original, 0, 0, canvas.width, canvas.height);
-  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const size = canvas.width * canvas.height,
-    categories = new Uint8Array(size),
-    confidence = new Float32Array(size);
-  for (let y = 0; y < canvas.height; y++)
-    for (let x = 0; x < canvas.width; x++) {
-      const i = y * canvas.width + x,
-        index = resizedMaskIndex(
-          x,
-          y,
-          canvas.width,
-          canvas.height,
-          analysis.width,
-          analysis.height,
-        );
-      const originalIndex = resizedMaskIndex(
-        x,
-        y,
-        canvas.width,
-        canvas.height,
-        original.width,
-        original.height,
-      );
-      categories[i] = protectedFace[originalIndex] ? 3 : analysis.categories[index];
-      confidence[i] = analysis.hairConfidence[index];
-    }
-  const repaired = repairHair(data.data, categories, confidence, canvas.width, canvas.height);
-  ctx.putImageData(new ImageData(repaired.pixels, canvas.width, canvas.height), 0, 0);
-  const mask = document.createElement('canvas');
-  mask.width = canvas.width;
-  mask.height = canvas.height;
-  const maskData = new ImageData(canvas.width, canvas.height);
-  for (let i = 0; i < size; i++) maskData.data[i * 4 + 3] = repaired.removed[i] * 255;
-  mask.getContext('2d')!.putImageData(maskData, 0, 0);
-  return {
-    image: canvas,
-    mask,
-    coverage: repaired.coverage,
-    hairPixels: repaired.hairPixels,
-    protectedFace,
-  };
+  return { protectedFace };
 }
+
 export function composePhoto(
   original: HTMLCanvasElement,
   analysis: PhotoAnalysis,
   repair: ReturnType<typeof prepareRepair>,
   hair: HairAsset,
   calibration: CalibrationState,
-  removal: number,
   brightness: number,
 ) {
   const width = original.width,
@@ -193,26 +147,7 @@ export function composePhoto(
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(original, 0, 0);
-  const patch = document.createElement('canvas');
-  patch.width = width;
-  patch.height = height;
-  const patchCtx = patch.getContext('2d')!;
-  patchCtx.drawImage(repair.image, 0, 0, width, height);
-  patchCtx.globalCompositeOperation = 'destination-in';
-  patchCtx.filter = 'blur(1px)';
-  patchCtx.drawImage(repair.mask, 0, 0, width, height);
-  // Reinstate non-hair pixels below after feathering, so repair never smears face or glasses.
-  const region = patchCtx.getImageData(0, 0, width, height);
-  for (let y = 0; y < height; y++)
-    for (let x = 0; x < width; x++) {
-      const index = resizedMaskIndex(x, y, width, height, analysis.width, analysis.height);
-      if (analysis.categories[index] !== 1 || repair.protectedFace[y * width + x])
-        region.data[(y * width + x) * 4 + 3] = 0;
-    }
-  patchCtx.putImageData(region, 0, 0);
-  ctx.globalAlpha = removal;
-  ctx.drawImage(patch, 0, 0);
-  ctx.globalAlpha = 1;
+  // Preserve the original hair and background; background reconstruction is unsupported.
   const newWidth = (anchor.width / Math.max(0.1, hair.faceWidthRatio)) * calibration.scale,
     newHeight = (newWidth * hair.image.height) / hair.image.width;
   ctx.save();

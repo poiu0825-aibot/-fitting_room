@@ -8,6 +8,10 @@ async function imageFile(page: import('@playwright/test').Page, hair: boolean) {
     const ctx = canvas.getContext('2d')!;
     ctx.fillStyle = hair ? '#794328' : '#e2c0a0';
     ctx.fillRect(hair ? 20 : 0, hair ? 10 : 0, hair ? 80 : 120, hair ? 100 : 160);
+    if (!hair) {
+      ctx.fillStyle = '#123456';
+      ctx.fillRect(39, 119, 3, 3);
+    }
     return canvas.toDataURL('image/png').split(',')[1];
   }, hair);
   return {
@@ -135,7 +139,7 @@ test('official portrait: local hair extraction, composition, comparison and down
   await expect(page.getByAltText('新髮型與髮際線錨點')).toHaveCount(0);
 });
 
-test('composition preserves the lower face even when segmentation mislabels it as hair', async ({
+test('composition preserves original pixels outside the overlay even when labelled as hair', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -215,8 +219,11 @@ test('composition preserves the lower face even when segmentation mislabels it a
       return {
         face: Array.from(ctx.getImageData(60, 88, 1, 1).data),
         forehead: Array.from(ctx.getImageData(60, 50, 1, 1).data),
+        originalHair: Array.from(ctx.getImageData(40, 120, 1, 1).data),
       };
     });
+  await expect(page.getByLabel('舊髮處理強度')).toHaveCount(0);
+  expect(samples.originalHair).toEqual([18, 52, 86, 255]);
   expect(samples.face).toEqual([226, 192, 160, 255]);
   expect(samples.forehead).toEqual([121, 67, 40, 255]);
 });

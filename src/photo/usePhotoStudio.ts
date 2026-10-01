@@ -41,8 +41,7 @@ export function usePhotoStudio() {
     [status, setStatus] = useState(''),
     [error, setError] = useState('');
   const [calibration, setCalibration] = useState({ ...DEFAULT_CALIBRATION });
-  const [removal, setRemoval] = useState(1),
-    [brightness, setBrightness] = useState(1);
+  const [brightness, setBrightness] = useState(1);
   const analyser = useRef<PhotoAnalyser | null>(null),
     ownedHair = useRef<ImageBitmap | null>(null),
     generation = useRef(0);
@@ -159,7 +158,7 @@ export function usePhotoStudio() {
       const data = await analyser.current.analyse(bitmap);
       validatePortrait(data);
       if (id !== generation.current) return;
-      setStatus('正在修補舊髮區域並合成…');
+      setStatus('正在產生髮型疊圖預覽…');
       const repair = prepareRepair(portrait, data);
       setAnalysis({ data, repair });
     } catch (cause) {
@@ -185,17 +184,12 @@ export function usePhotoStudio() {
           analysis.repair,
           hair,
           calibration,
-          removal,
           brightness,
         );
         const blob = await canvasToBlob(canvas);
         if (!cancelled) {
           setResultBlob(blob);
-          setStatus(
-            analysis.repair.hairPixels > 0 && analysis.repair.coverage < 0.9
-              ? '已套用新髮型，但部分舊髮無法修補。請使用背景更簡單的照片。'
-              : '合成完成。請檢查邊緣、臉部與眼鏡，再決定是否保存。',
-          );
+          setStatus('疊圖預覽完成。保留原本頭髮與背景；目前不支援自然換髮型。');
         }
       } catch (cause) {
         if (!cancelled) {
@@ -210,7 +204,7 @@ export function usePhotoStudio() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [portrait, analysis, hair, calibration, removal, brightness]);
+  }, [portrait, analysis, hair, calibration, brightness]);
   const reset = useCallback(() => {
     generation.current++;
     analyser.current?.close();
@@ -228,7 +222,6 @@ export function usePhotoStudio() {
     setError('');
     setStatus('');
     setCalibration({ ...DEFAULT_CALIBRATION });
-    setRemoval(1);
     setBrightness(1);
   }, []);
   return {
@@ -244,8 +237,6 @@ export function usePhotoStudio() {
     error,
     calibration,
     setCalibration,
-    removal,
-    setRemoval,
     brightness,
     setBrightness,
     uploadPhoto,

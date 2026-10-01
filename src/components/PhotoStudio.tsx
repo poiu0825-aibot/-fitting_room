@@ -56,7 +56,7 @@ export function PhotoStudio() {
   return (
     <section className="photo-studio" aria-label="本機照片換髮型">
       <p className="photo-notice">
-        照片版試用：使用正面、光線充足、背景簡單的照片。原頭髮由本機分割與補色處理，無法還原被遮住的真實細節；效果需自行檢查。
+        髮型疊圖預覽：保留原本頭髮與背景。目前無法自然替換髮型，已停用會造成背景色塊的舊髮補色。
       </p>
       <div className="workspace">
         <div className="preview-section">
@@ -242,18 +242,6 @@ export function PhotoStudio() {
                 disabled={studio.busy}
               />
               <label className="photo-adjust">
-                舊髮處理強度
-                <input
-                  aria-label="舊髮處理強度"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={studio.removal}
-                  onChange={(e) => studio.setRemoval(Number(e.target.value))}
-                />
-              </label>
-              <label className="photo-adjust">
                 新髮亮度
                 <input
                   aria-label="新髮亮度"
@@ -266,7 +254,7 @@ export function PhotoStudio() {
                 />
               </label>
               <p className="hint">
-                舊髮補色可能出現模糊或背景痕跡，特別是長髮改短髮。可降低處理強度或更換照片。
+                此預覽只是疊圖，原本的頭髮仍會保留，不能用來判斷寫實換髮型效果。
               </p>
             </>
           )}
