@@ -1,0 +1,14 @@
+node_modules/
+dist/
+public/vision/
+.env
+.env.*
+!.env.example
+*.local
+.cache/
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+uploads/
+captures/
