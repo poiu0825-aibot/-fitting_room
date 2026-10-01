@@ -1,4 +1,6 @@
-# 本輪驗證
+# 驗證記錄
+
+## 原即時 MVP（歷史）
 
 執行環境：Linux 雲端、Node 24.19.0、npm 11.9.0、系統 Chromium。測試皆為開發任務當次結果，不能推論已在實體 iOS／Android 或 Cloudflare 發佈後驗證。
 
@@ -12,3 +14,16 @@
 - 隱私：瀏覽器測試確認只有同源靜態 GET 與本機 blob 預覽；沒有影像 POST 或遠端 AI 請求。
 
 尚未驗證：實體手機相機、各手機的 mirror／EXIF 行為與下載 UX、長時間熱節流、已部署 Cloudflare Pages 網站。請依 README 真機流程完成確認。
+
+## 本機照片換髮型試用
+
+- Node／系統 Chromium 環境同上。`npm run lint`、`npm run typecheck`、`npm test`、`npm run build` 通過，Vitest 30 tests／4 files。
+- 正式输出 Playwright 15 tests：14 passed、1 skipped。跳過的是未提供 `VISION_TEST_POSE_IMAGE` 的既有官方人體圖片測試；真實 Pose 初始化仍執行並通過。
+- 本次提供 `/tmp` 官方 portrait fixture，真實 Face 偵測、照片版分割、參考人像頭髮擷取、合成、前後對照及 PNG 下載通過。這不是將任意兩張人像合成後的寫實品質評測。
+- 另以可控 Worker 遮罩將臉部誤標為頭髮，實際走 UI 合成並驗證下半臉像素保持原值、額頭新髮確實套用；不是只測 renderer 假呼叫。
+- 未偵測到人臉時不產生假成功結果；單元測試拒絕多人／大角度側臉。相機拒絕後可改選本機人像。
+- production `_headers` CSP 已涵蓋 live 與 photo 流程的模型、WASM、Blob 預覽與錨點調整；沒有對外圖像 POST。
+- Selfie Multiclass model version 1 從官方 HTTPS 下載，SHA-256 固定 `c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0`。約 16.4 MB，最大的單一部署檔案；model、WASM、影像、結果皆不進 Git。
+- 檢視桌面與 390×844 手機 UI 截圖，沒有水平 overflow。官方測試人像與衍生結果僅在 ignored 測試輸出／tmp。
+
+品質限制：只有本機分割與近似背景補色，沒有生成式 inpainting、隱藏頭皮重建或 3D 頭髮。灰白髮與原髮色差異、複雜背景、長髮改短髮、髮絲與眼鏡遮擋仍需真機與原始髮型 PNG 品質驗收。不能宣稱自然換髮型已普遍達到寫實效果；介面與 README 均標示試用及限制。

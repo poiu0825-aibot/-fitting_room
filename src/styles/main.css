@@ -649,3 +649,89 @@ footer p {
     font-size: 26px;
   }
 }
+.workflow-selector {
+  max-width: 420px;
+  margin-bottom: 22px;
+}
+.photo-notice {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #68725f;
+  border-left: 3px solid #b9cbb0;
+  padding: 10px 14px;
+  background: #edf0e5;
+  margin: 0 0 24px;
+}
+.photo-result {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e6e8de;
+}
+.photo-result img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 75dvh;
+  object-fit: contain;
+}
+.photo-studio .control-section > h2 {
+  font-size: 16px;
+  margin: 0 0 20px;
+}
+.photo-studio .upload-button {
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.photo-studio .upload-button small {
+  width: 100%;
+  color: var(--muted);
+  font-size: 11px;
+}
+.photo-studio .mode-selector {
+  margin-top: 12px;
+}
+.hair-anchor-panel {
+  font-size: 12px;
+  margin: 20px 0;
+}
+.hair-anchor-panel p {
+  line-height: 1.8;
+}
+.hair-anchor-image {
+  position: relative;
+  max-width: 180px;
+  margin: 12px auto;
+  background: repeating-conic-gradient(#e5e7e0 0% 25%, #f8f9f5 0% 50%) 50%/20px 20px;
+}
+.hair-anchor-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+}
+.anchor-cross {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 26px;
+  color: #bd372c;
+  text-shadow: 0 0 3px #fff;
+  pointer-events: none;
+}
+.hair-anchor-panel label,
+.photo-adjust {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+  min-height: 44px;
+}
+.hair-anchor-panel input,
+.photo-adjust input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+  height: 30px;
+}
+.photo-studio [hidden] {
+  display: none;
+}
