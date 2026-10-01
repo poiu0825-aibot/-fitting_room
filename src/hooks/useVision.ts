@@ -16,6 +16,7 @@ export function useVision(
     result.current = null;
     inferenceFps.current = 0;
     if (!enabled) {
+      setError('');
       setState('idle');
       return;
     }

@@ -20,13 +20,11 @@ test('mobile upload, calibration, reset, mode isolation and session clearing', a
   await expect(
     page.getByText('相機影像與上傳圖片僅在目前裝置進行即時處理，不會自動上傳。'),
   ).toBeVisible();
-  await page
-    .getByLabel('選擇試穿圖片')
-    .setInputFiles({
-      name: 'synthetic.png',
-      mimeType: 'image/png',
-      buffer: await syntheticPng(page),
-    });
+  await page.getByLabel('選擇試穿圖片').setInputFiles({
+    name: 'synthetic.png',
+    mimeType: 'image/png',
+    buffer: await syntheticPng(page),
+  });
   await expect(page.getByText('synthetic.png')).toBeVisible();
   await page.getByLabel('大小', { exact: true }).fill('1.5');
   await expect(page.getByText('150%')).toBeVisible();
@@ -92,4 +90,21 @@ test('fake camera renders, exports local pixels and stops tracks; no data leaves
     await page.locator('video').evaluate((video: HTMLVideoElement) => video.srcObject),
   ).toBeNull();
   expect(outbound).toEqual([]);
+});
+
+test('closing camera clears a failed model status and permits retry', async ({ page }) => {
+  await page.route('**/vision/face_landmarker.task', (route) =>
+    route.fulfill({ status: 503, body: 'Unavailable' }),
+  );
+  await page.goto('/');
+  await page.getByRole('button', { name: '開啟相機' }).click();
+  await expect(page.getByRole('alert')).toContainText('模型載入失敗', { timeout: 30000 });
+  await page.getByRole('button', { name: '關閉相機' }).click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText('準備好後，開啟相機並上傳一張圖片。')).toBeVisible();
+  await page.unroute('**/vision/face_landmarker.task');
+  await page.getByRole('button', { name: '開啟相機' }).click();
+  await expect(page.getByText('請將臉部放在畫面中央，並保持光線充足。')).toBeVisible({
+    timeout: 30000,
+  });
 });
