@@ -1,7 +1,7 @@
 name: Validate local try-on
 on:
   push:
-    branches: [main, codex/local-tryon-mvp]
+    branches: [main, 'codex/**']
   pull_request:
 permissions:
   contents: read

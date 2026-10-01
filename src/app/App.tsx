@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { PhotoStudio } from '../components/PhotoStudio';
 import { CameraView } from '../components/CameraView';
 import { CameraControls } from '../components/CameraControls';
 import { ItemTypeSelector } from '../components/ItemTypeSelector';
@@ -14,6 +15,9 @@ import { useTryOnEngine } from '../hooks/useTryOnEngine';
 import { DEFAULT_CALIBRATION } from '../config/tryOnConfig';
 import type { CalibrationState, TryOnItemType } from '../vision/types';
 export default function App() {
+  const [workflow, setWorkflow] = useState<'photo' | 'live'>(
+    new URLSearchParams(window.location.search).get('mode') === 'live' ? 'live' : 'photo',
+  );
   const [mode, setMode] = useState<TryOnItemType>('hairstyle');
   const [calibration, setCalibration] = useState<Record<TryOnItemType, CalibrationState>>({
     hairstyle: { ...DEFAULT_CALIBRATION },
@@ -56,64 +60,82 @@ export default function App() {
             <br className="mobile-break" />
             <span>看看自己。</span>
           </h1>
-          <p>即時虛擬試穿 · 你的私人試衣間</p>
+          <p>本機照片換髮型 · 你的私人試衣間</p>
         </div>
-        <div className="workspace">
-          <section className="preview-section" aria-label="相機試穿">
-            <div className="preview-label">
-              <span>LIVE PREVIEW</span>
-              <span>前鏡頭 · 鏡像</span>
-            </div>
-            <CameraView videoRef={camera.videoRef} canvasRef={canvasRef} status={camera.status}>
-              <div className="camera-corner top-left" />
-              <div className="camera-corner bottom-right" />
-              <span className="camera-mode">
-                {mode === 'hairstyle' ? 'HAIR STUDIO' : 'WARDROBE'}
-              </span>
-              {debug && <DebugOverlay stats={engine.stats} />}
-            </CameraView>
-            <CameraControls
-              status={camera.status}
-              start={() => void camera.start()}
-              stop={camera.stop}
-            />
-          </section>
-          <aside className="control-section">
-            <div className="section-heading">
-              <h2>選擇你的新造型</h2>
-              <span className="step-number">01 — 03</span>
-            </div>
-            <ItemTypeSelector mode={mode} onChange={setMode} />
-            <UploadPanel
-              mode={mode}
-              asset={asset}
-              upload={uploaded.upload}
-              clear={uploaded.clear}
-              loading={uploaded.loading}
-              error={uploaded.error}
-            />
-            <StatusPanel
-              cameraReady={active}
-              state={vision.state}
-              mode={mode}
-              faceCount={engine.stats.faceCount}
-              poseDetected={engine.stats.poseDetected}
-              error={camera.error || vision.error || engine.error}
-              retry={vision.retry}
-            />
-            <CalibrationPanel
-              value={calibration[mode]}
-              onChange={(value) => setCalibration((previous) => ({ ...previous, [mode]: value }))}
-              disabled={!asset}
-            />
-            <CapturePanel capture={engine.capture} enabled={active} />
-            <p className="session-note">
-              不留歷史，只留你喜歡的樣子。
-              <br />
-              重新整理頁面後，圖片與結果會清除。
-            </p>
-          </aside>
+        <div className="mode-selector workflow-selector" role="group" aria-label="處理方式">
+          <button
+            aria-pressed={workflow === 'photo'}
+            onClick={() => {
+              camera.stop();
+              setWorkflow('photo');
+            }}
+          >
+            照片換髮型
+          </button>
+          <button aria-pressed={workflow === 'live'} onClick={() => setWorkflow('live')}>
+            即時疊圖（基礎）
+          </button>
         </div>
+        {workflow === 'photo' ? (
+          <PhotoStudio />
+        ) : (
+          <div className="workspace">
+            <section className="preview-section" aria-label="相機試穿">
+              <div className="preview-label">
+                <span>LIVE PREVIEW</span>
+                <span>前鏡頭 · 鏡像</span>
+              </div>
+              <CameraView videoRef={camera.videoRef} canvasRef={canvasRef} status={camera.status}>
+                <div className="camera-corner top-left" />
+                <div className="camera-corner bottom-right" />
+                <span className="camera-mode">
+                  {mode === 'hairstyle' ? 'HAIR STUDIO' : 'WARDROBE'}
+                </span>
+                {debug && <DebugOverlay stats={engine.stats} />}
+              </CameraView>
+              <CameraControls
+                status={camera.status}
+                start={() => void camera.start()}
+                stop={camera.stop}
+              />
+            </section>
+            <aside className="control-section">
+              <div className="section-heading">
+                <h2>選擇你的新造型</h2>
+                <span className="step-number">01 — 03</span>
+              </div>
+              <ItemTypeSelector mode={mode} onChange={setMode} />
+              <UploadPanel
+                mode={mode}
+                asset={asset}
+                upload={uploaded.upload}
+                clear={uploaded.clear}
+                loading={uploaded.loading}
+                error={uploaded.error}
+              />
+              <StatusPanel
+                cameraReady={active}
+                state={vision.state}
+                mode={mode}
+                faceCount={engine.stats.faceCount}
+                poseDetected={engine.stats.poseDetected}
+                error={camera.error || vision.error || engine.error}
+                retry={vision.retry}
+              />
+              <CalibrationPanel
+                value={calibration[mode]}
+                onChange={(value) => setCalibration((previous) => ({ ...previous, [mode]: value }))}
+                disabled={!asset}
+              />
+              <CapturePanel capture={engine.capture} enabled={active} />
+              <p className="session-note">
+                不留歷史，只留你喜歡的樣子。
+                <br />
+                重新整理頁面後，圖片與結果會清除。
+              </p>
+            </aside>
+          </div>
+        )}
       </main>
       <footer>
         <span className="privacy-icon" aria-hidden="true">

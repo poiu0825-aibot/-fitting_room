@@ -1,6 +1,6 @@
 # Fitting Room / Local Virtual Try-On
 
-以瀏覽器本機運算為核心的即時髮型與上衣 AR 試穿。React + TypeScript + Vite，繁體中文、手機優先。無帳號、後端、資料庫、圖片上傳 API、雲端圖片儲存或遠端 AI API。
+以瀏覽器本機運算為核心的照片換髮型試用與基礎髮型／上衣 AR 疊圖。首頁預設照片流程；即時疊圖保留在「即時疊圖（基礎）」分頁。React + TypeScript + Vite，繁體中文、手機優先。無帳號、後端、資料庫、圖片上傳 API、雲端圖片儲存或遠端 AI API。
 
 ## 開發
 
@@ -15,7 +15,7 @@ npm run dev
 
 1. 用 esbuild 將追蹤 Worker 打包為 classic Worker。MediaPipe WASM loader 使用 `importScripts`，因此不能直接使用 module Worker。
 2. 從鎖定的 npm 套件複製 MediaPipe WASM。
-3. 透過 HTTPS 從 Google 官方版本化 URL 下載 Face Landmarker 與 Pose Landmarker Lite 模型，驗證固定 SHA-256。已有正確模型可離線重用。
+3. 透過 HTTPS 從 Google 官方版本化 URL 下載 Face Landmarker、Pose Landmarker Lite 與 Selfie Multiclass 分割模型，驗證固定 SHA-256。已有正確模型可離線重用。
 
 所有執行時資源都在網站自己的 `/vision/`，不需要 CDN 或 AI 服務。`public/vision/` 是產生的靜態資源、不進 Git，建置會包含於 `dist/vision/`。初次安裝需要 `registry.npmjs.org` 與 `storage.googleapis.com`；安裝失敗不能略過模型就部署。npm 快取放在 `/tmp/fitting-room-npm-cache`，避免雲端 HOME 不可寫。
 
@@ -29,16 +29,32 @@ npm run preview
 
 build 重新驗證模型並建立 Worker、typecheck、輸出完整靜態網站至 `dist/`。
 
-## 功能與使用
+## 照片換髮型（本機試用）
 
-1. 按「開啟相機」，允許前鏡頭。可隨時關閉或重新啟動，不會自動索取權限。
+1. 用相機拍一張正面照片，或從本機選擇人像。拍照後相機停止，畫面凍結，沒有即時生成。
+2. 選透明髮型 PNG / WEBP；也可選一張只有一人、正面的參考人像，讓本機模型擷取頭髮。
+3. 檢查髮型預覽，在圖片或滑桿選擇髮際線中心；透明圖無法自動知道髮際線，這個錨點需要使用者確認。
+4. 按「分析照片並合成」。可調位置、大小、旋轉與新髮亮度，再切換原圖／結果檢查。
+5. 下載 PNG，或清除本次圖片。離開照片流程或 reload 後，圖片、遮罩與結果會釋放。
+
+照片分析使用官方 Selfie Multiclass 分割模型，在 classic Worker 中執行 IMAGE 模式，辨識 background / hair / body-skin / face-skin / clothes / accessories。模型 version 1，固定 SHA-256；約 16.4 MB，只在執行照片分析／參考人像擷取時載入。原圖長邊最多 1024 px，推論輸入長邊 768 px。所有資源從同源取得，不上傳照片。
+
+已停用舊髮補色：近鄰背景填色在真實照片造成明顯色塊，無法達到自然換髮型。現在只疊加新髮型並保護眉眼以下的臉部；原本頭髮與背景保留。
+
+**目前只有髮型疊圖預覽，不支援自然或寫實換髮型。** 模型及功能測試通過不能代表寫實品質通過。
+
+新增模組：`src/photo/photo.worker.ts`、`analyser.ts`、`composition.ts`、`pixels.ts`、`usePhotoStudio.ts`、`types.ts`、`config.ts`，介面在 `src/components/PhotoStudio.tsx`。`PHOTO_CONFIG` 集中推論尺寸、mask 門檻、側臉限制、時間與錨點預設。
+
+## 即時疊圖功能與使用
+
+1. 先切換「即時疊圖（基礎）」，再按「開啟相機」，允許前鏡頭。可隨時關閉或重新啟動，不會自動索取權限。
 2. 選「髮型」或「上衣」，從手機相簿／檔案選一張 PNG、JPG、WEBP（最大 15 MB）。透明背景效果最佳。Alpha 保留；JPG 不會自動去背。
 3. 髮型模式請讓一張臉正面入鏡；上衣模式請讓肩膀與腰部都入鏡。
 4. 用大小、上下、左右、旋轉微調，各模式的圖片與校正值獨立。可重設或移除圖片。
 5. 按「拍下這個樣子」檢查結果，按「儲存圖片」下載 PNG。下載完成不會自動刪除預覽；關閉預覽會釋放其 Object URL。
 6. 重新整理會清除上傳圖片與拍照结果，並關閉相機。
 
-`?debug=1` 顯示 FPS、推論 FPS、來源／Canvas 解析度、臉部數量、姿態狀態、臉部中心、最後 transform、鏡像狀態，以及畫面上的 landmarks。預設關閉。拍照不包含 debug 或 UI。
+`?mode=live&debug=1` 顯示 FPS、推論 FPS、來源／Canvas 解析度、臉部數量、姿態狀態、臉部中心、最後 transform、鏡像狀態，以及畫面上的 landmarks。預設關閉。拍照不包含 debug 或 UI。
 
 ## 架構與主要檔案
 
@@ -113,7 +129,7 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:browser
 - Vitest：座標裁切、mirror、反向轉換、resize、角度、EMA、FaceTransform、GarmentTransform、Calibration merge、相機錯誤與鏡像合成。
 - Playwright：手機 UI、圖片上傳、校正／重設／模式隔離、session 清除、權限拒絕、fake camera、合成 PNG／下載、關閉 stream、無對外資料傳送。
 - 真實模型在 Worker 中初始化並推論空白 frame；不需要 CI webcam。
-- 可額外以 `VISION_TEST_FACE_IMAGE`、`VISION_TEST_POSE_IMAGE` 提供放在 Git 外的官方範例 JPG，驗證真實臉部與人體偵測。未提供時這兩個測試會明確 skip，其他模型初始化測試仍必須通過。不提交測試人像或自拍。
+- 可額外以 `VISION_TEST_FACE_IMAGE`、`VISION_TEST_POSE_IMAGE` 提供放在 Git 外的官方範例 JPG，驗證真實臉部與人體偵測。照片流程另有官方人像擷取／合成／下載測試，同樣可用 `VISION_TEST_FACE_IMAGE` 啟用。未提供時這三個測試會明確 skip，其他模型初始化測試仍必須通過。不提交測試人像或自拍。
 
 本次開發驗證結果在 `docs/validation.md`，記錄成功的命令、範圍與真機限制。
 
@@ -160,3 +176,7 @@ Pages → 建立專案 → Connect to Git → 選此 repository：
 - [MediaPipe Pose Landmarker Web](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js)
 
 官方文件提醒 `detectForVideo` 同步阻塞呼叫執行緒，因此本專案將它放在 Worker。
+
+照片測試包含分割 Worker 真實初始化／推論、沒有臉時拒絕合成、原圖／結果／下載、透明留白裁切、分割誤判鬍鬚為頭髮時保護臉部，以及相機拒絕後改選本機照片。模型與所有測試人像不進 Git。
+
+照片分割官方參考：[Image Segmenter／Multi-class selfie model](https://developers.google.com/edge/mediapipe/solutions/vision/image_segmenter#multiclass-model)。
